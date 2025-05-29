@@ -1,6 +1,5 @@
 import { Suspense } from "react"
 import RouletteGame from "@/components/roulette-game"
-import WorldCoinAuth from "@/components/worldcoin-auth"
 import { UserCounterProvider } from "@/context/user-counter-context"
 
 export default function Home() {
@@ -12,9 +11,7 @@ export default function Home() {
             <div className="w-full h-screen flex items-center justify-center text-white text-xl">Cargando...</div>
           }
         >
-          <WorldCoinAuth>
-            <RouletteGame />
-          </WorldCoinAuth>
+          <RouletteGame />
         </Suspense>
       </UserCounterProvider>
     </main>
