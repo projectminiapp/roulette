@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -37,11 +36,16 @@ export default function RouletteGame() {
 
   useEffect(() => {
     const initWallet = async () => {
-      const res = await fetch("/api/nonce")
-      const { nonce } = await res.json()
-      const { finalPayload } = await MiniKit.commandsAsync.walletAuth({ nonce })
-      if (finalPayload.status === "success") {
-        setUserAddress(finalPayload.address)
+      try {
+        await MiniKit.install()
+        const res = await fetch("/api/nonce")
+        const { nonce } = await res.json()
+        const { finalPayload } = await MiniKit.commandsAsync.walletAuth({ nonce })
+        if (finalPayload.status === "success") {
+          setUserAddress(finalPayload.address)
+        }
+      } catch (err) {
+        console.error("Wallet initialization error:", err)
       }
     }
     initWallet()
@@ -60,23 +64,17 @@ export default function RouletteGame() {
         justUpdated: true,
       }
       setBets(updatedBets)
-      setTimeout(() => {
-        setBets((bets) =>
-          bets.map((bet) =>
-            bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet,
-          ),
-        )
-      }, 500)
     } else {
       setBets([...bets, { type: betType, value, amount, justUpdated: true }])
-      setTimeout(() => {
-        setBets((bets) =>
-          bets.map((bet) =>
-            bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet,
-          ),
-        )
-      }, 500)
     }
+
+    setTimeout(() => {
+      setBets((b) =>
+        b.map((bet) =>
+          bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet,
+        )
+      )
+    }, 500)
 
     setBalance((prev) => prev - amount)
     setWinAmount(null)
@@ -94,17 +92,22 @@ export default function RouletteGame() {
     if (isSpinning || bets.length === 0 || !userAddress) return
 
     const reference = uuidv4()
-    await MiniKit.commandsAsync.pay({
-      reference,
-      to: process.env.NEXT_PUBLIC_HOUSE_ADDRESS!,
-      tokens: [
-        {
-          symbol: Tokens.WLD,
-          token_amount: tokenToDecimals(totalBetAmount, Tokens.WLD).toString()
-        }
-      ],
-      description: "Apuesta ruleta"
-    })
+    try {
+      await MiniKit.commandsAsync.pay({
+        reference,
+        to: process.env.NEXT_PUBLIC_HOUSE_ADDRESS!,
+        tokens: [
+          {
+            symbol: Tokens.WLD,
+            token_amount: tokenToDecimals(totalBetAmount, Tokens.WLD).toString(),
+          },
+        ],
+        description: "Apuesta ruleta",
+      })
+    } catch (err) {
+      console.error("Error en el pago:", err)
+      return
+    }
 
     const result = Math.floor(Math.random() * 37) as RouletteNumber
     setLastResult(result)

@@ -1,6 +1,12 @@
+"use client"
+
+import dynamic from "next/dynamic"
 import { Suspense } from "react"
-import RouletteGame from "@/components/roulette-game"
 import { UserCounterProvider } from "@/context/user-counter-context"
+
+const RouletteGame = dynamic(() => import("@/components/roulette-game"), {
+  ssr: false,
+})
 
 export default function Home() {
   return (
@@ -8,7 +14,9 @@ export default function Home() {
       <UserCounterProvider>
         <Suspense
           fallback={
-            <div className="w-full h-screen flex items-center justify-center text-white text-xl">Cargando...</div>
+            <div className="w-full h-screen flex items-center justify-center text-white text-xl">
+              Cargando...
+            </div>
           }
         >
           <RouletteGame />
