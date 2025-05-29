@@ -166,6 +166,111 @@ export default function RouletteGame() {
   }, [isSpinning, lastResult])
 
   return (
-    <div className="w-full"> {/* Aquí deberías tener tu UI como estaba antes */} </div>
+    <div className="w-full min-h-screen flex flex-col items-center p-1 bg-[#0d1e3a]">
+    <div className="w-full flex justify-between items-center mb-1 sticky top-0 z-30 bg-[#0d1e3a] bg-opacity-95 p-1 border-b border-[#1a2b47]">
+      <div className="text-base font-bold flex items-center gap-1">
+        <Sparkles className="text-yellow-400" size={14} />
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-amber-300">
+          Roulette Casino
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <UserCounter count={userCount} />
+        <Sheet>
+          <SheetTrigger asChild>
+            <button className="bg-[#1a2b47] text-white p-1 rounded-full hover:bg-[#2a3b57] transition-all">
+              <Menu size={16} className="text-yellow-400" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="right" className="bg-[#0d1e3a] border-l border-[#1a2b47] p-4">
+            <div className="flex flex-col gap-4 mt-6">
+              <h3 className="text-lg font-bold text-yellow-400">Opciones</h3>
+
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="flex items-center gap-2 p-3 rounded-lg bg-[#1a2b47] text-white"
+              >
+                {soundEnabled ? (
+                  <>
+                    <Volume2 size={18} className="text-green-400" /> Sonidos activados
+                  </>
+                ) : (
+                  <>
+                    <VolumeX size={18} className="text-red-400" /> Sonidos desactivados
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowStats(!showStats)}
+                className="flex items-center gap-2 p-3 rounded-lg bg-[#1a2b47] text-white"
+              >
+                <BarChart3 size={18} className="text-purple-400" />
+                {showStats ? "Ocultar estadísticas" : "Mostrar estadísticas"}
+              </button>
+
+              <ViewToggle currentView={view} onViewChange={setView} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </div>
+
+    <div className="w-full flex flex-col items-center gap-2 relative">
+      <div className="flex items-center gap-2 bg-[#1a2b47] p-1 rounded-full shadow-md z-10 w-full justify-center">
+        <div className="text-xs font-semibold flex items-center gap-1 text-white">
+          <Coins className="text-yellow-400" size={12} />
+          <span>
+            Balance: <span className="text-yellow-300">{balance.toFixed(2)} WLD</span>
+          </span>
+        </div>
+        <div className="text-xs font-semibold text-white">
+          Bet: <span className="text-green-300">{totalBetAmount.toFixed(2)} WLD</span>
+        </div>
+      </div>
+
+      {winAmount !== null && (
+        <div className="text-xs font-semibold animate-pulse bg-[#1a2b47] px-2 py-0.5 rounded-full z-10">
+          Win: <span className="text-yellow-300">{winAmount.toFixed(2)} WLD</span>!
+        </div>
+      )}
+
+      <div className="flex flex-col w-full gap-2 items-center justify-center z-10">
+        <div className="w-full flex justify-center">
+          <div className="w-full max-w-[250px]">
+            <RouletteWheel
+              isSpinning={isSpinning}
+              lastResult={lastResult}
+              onSpinComplete={onSpinCompleteCallback || (() => {})}
+              view={view}
+            />
+          </div>
+        </div>
+
+        <ResultsHistory history={resultsHistory} />
+
+        <div className="w-full">
+          <BettingBoard
+            onPlaceBet={(type, value) => placeBet(type, value, selectedChip)}
+            currentBets={bets}
+            view={view}
+          />
+        </div>
+      </div>
+
+      {showStats && <StatsPanel history={resultsHistory} />}
+
+      <div className="w-full flex flex-col gap-2 z-10 sticky bottom-0 bg-[#0d1e3a] bg-opacity-95 p-1 border-t border-[#1a2b47]">
+        <ChipSelector selectedChip={selectedChip} onSelectChip={setSelectedChip} view={view} />
+        <MobileControls
+          onClearBets={clearBets}
+          onSpin={spinWheel}
+          isSpinning={isSpinning}
+          hasBets={bets.length > 0}
+        />
+      </div>
+    </div>
+  </div>
   )
 }
