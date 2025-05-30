@@ -15,7 +15,13 @@ import { Coins, Sparkles, Volume2, VolumeX, BarChart3, Menu } from "lucide-react
 import { playChipSound, playSpinSound, playWinSound } from "@/lib/audio"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js"
+import { ethers } from "ethers"
 import { v4 as uuidv4 } from "uuid"
+
+const WLD_ABI = [
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+]
 
 export default function RouletteGame() {
   const [selectedChip, setSelectedChip] = useState<ChipValue>(1)
@@ -34,6 +40,19 @@ export default function RouletteGame() {
 
   const totalBetAmount = bets.reduce((total, bet) => total + bet.amount, 0)
 
+  const fetchWldBalance = async (address: string) => {
+    try {
+      const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL)
+      const contract = new ethers.Contract(process.env.NEXT_PUBLIC_TOKEN_ADDRESS!, WLD_ABI, provider)
+      const rawBalance = await contract.balanceOf(address)
+      const decimals = await contract.decimals()
+      const formatted = Number(rawBalance) / 10 ** decimals
+      setBalance(formatted)
+    } catch (err) {
+      console.error("Error al obtener el balance de WLD:", err)
+    }
+  }
+
   useEffect(() => {
     const initWallet = async () => {
       try {
@@ -43,6 +62,7 @@ export default function RouletteGame() {
         const { finalPayload } = await MiniKit.commandsAsync.walletAuth({ nonce })
         if (finalPayload.status === "success") {
           setUserAddress(finalPayload.address)
+          fetchWldBalance(finalPayload.address)
         }
       } catch (err) {
         console.error("Wallet initialization error:", err)
@@ -51,28 +71,22 @@ export default function RouletteGame() {
     initWallet()
   }, [])
 
-  const placeBet = (betType: string, value: string | number, amount: number) => {
+  const placeBet = (type: string, value: string | number, amount: number) => {
     if (isSpinning || balance < amount) return
     if (soundEnabled) playChipSound()
 
-    const existingBetIndex = bets.findIndex((bet) => bet.type === betType && bet.value === value)
-    if (existingBetIndex >= 0) {
-      const updatedBets = [...bets]
-      updatedBets[existingBetIndex] = {
-        ...updatedBets[existingBetIndex],
-        amount: updatedBets[existingBetIndex].amount + amount,
-        justUpdated: true,
-      }
-      setBets(updatedBets)
+    const existingIndex = bets.findIndex((b) => b.type === type && b.value === value)
+    if (existingIndex >= 0) {
+      const updated = [...bets]
+      updated[existingIndex] = { ...updated[existingIndex], amount: updated[existingIndex].amount + amount, justUpdated: true }
+      setBets(updated)
     } else {
-      setBets([...bets, { type: betType, value, amount, justUpdated: true }])
+      setBets([...bets, { type, value, amount, justUpdated: true }])
     }
 
     setTimeout(() => {
       setBets((b) =>
-        b.map((bet) =>
-          bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet,
-        )
+        b.map((bet) => (bet.type === type && bet.value === value ? { ...bet, justUpdated: false } : bet))
       )
     }, 500)
 
@@ -277,3 +291,7 @@ export default function RouletteGame() {
   </div>
   )
 }
+
+
+
+  
