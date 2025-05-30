@@ -4,6 +4,7 @@ import dynamic from "next/dynamic"
 import { Suspense } from "react"
 import { UserCounterProvider } from "@/context/user-counter-context"
 
+// Carga dinámica del componente sin SSR para evitar problemas con APIs de navegador
 const RouletteGame = dynamic(() => import("@/components/roulette-game"), {
   ssr: false,
 })
