@@ -16,28 +16,22 @@ import { playChipSound, playSpinSound, playWinSound } from "@/lib/audio";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
 import { v4 as uuidv4 } from "uuid";
-import { ethers } from "ethers";
-import erc20ABI from "@/lib/erc20.json";
-
 import { formatUnits } from "ethers/lib/utils";
 
 import { createPublicClient, http, type PublicClient } from "viem";
-import { polygon } from "viem/chains";
+import { TokenProvider } from "@holdstation/worldchain-sdk";
 
 const WLD_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!;
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!;
 
-const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const tokenContract = new ethers.Contract(WLD_CONTRACT_ADDRESS, erc20ABI, provider);
-
 const client = createPublicClient({
-  chain: polygon,
   transport: http(RPC_URL),
-  batch: {
-    multicall: true
-  }
 }) as PublicClient;
+
+const tokenProvider = new TokenProvider({
+  client: client as any,  // <-- casteo para evitar error de tipos
+});
 
 export default function RouletteGame() {
   const [selectedChip, setSelectedChip] = useState<ChipValue>(1);
@@ -56,25 +50,22 @@ export default function RouletteGame() {
 
   const totalBetAmount = bets.reduce((total, bet) => total + bet.amount, 0);
 
-  // Obtener balance real con Holdstation SDK y viem
   const fetchBalance = async (address: string | null) => {
     if (!address) return;
     try {
-      const balance = await client.readContract({
-        address: WLD_CONTRACT_ADDRESS as `0x${string}`,
-        abi: erc20ABI,
-        functionName: 'balanceOf',
-        args: [address]
-      }) as bigint;
-      const balanceInEth = parseFloat(formatUnits(balance.toString(), 18));
+      const balances = await tokenProvider.balanceOf({
+        wallet: address,
+        tokens: [WLD_CONTRACT_ADDRESS],
+      });
+      const rawBalance = balances[WLD_CONTRACT_ADDRESS] ?? "0";
+      const balanceInEth = parseFloat(formatUnits(rawBalance, 18));
       setBalance(balanceInEth);
     } catch (err) {
-      console.error("Error obteniendo balance:", err);
+      console.error("Error obteniendo balance con Holdstation SDK:", err);
       setBalance(0);
     }
   };
 
-  // Inicializar wallet y balance
   useEffect(() => {
     const initWallet = async () => {
       try {
