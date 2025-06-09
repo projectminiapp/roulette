@@ -18,7 +18,7 @@ import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
 import { v4 as uuidv4 } from "uuid";
 import { formatUnits } from "ethers/lib/utils";
 
-import { createPublicClient, http, type PublicClient } from "viem";
+import { createPublicClient, http, multicall3Abi, type PublicClient } from "viem";
 import { TokenProvider } from "@holdstation/worldchain-sdk";
 
 const WLD_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
@@ -26,11 +26,11 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!;
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!;
 
 const client = createPublicClient({
-  transport: http(RPC_URL),
+  transport: http(RPC_URL),  // Solo configurando el RPC
 }) as PublicClient;
 
 const tokenProvider = new TokenProvider({
-  client: client as any,  // <-- casteo para evitar error de tipos
+  client: client as any,
 });
 
 export default function RouletteGame() {
@@ -83,6 +83,7 @@ export default function RouletteGame() {
     };
     initWallet();
   }, []);
+
 
   const placeBet = (betType: string, value: string | number, amount: number) => {
     if (isSpinning || balance < amount) return;
