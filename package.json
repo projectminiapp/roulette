@@ -45,7 +45,7 @@
     "cmdk": "latest",
     "date-fns": "4.1.0",
     "embla-carousel-react": "latest",
-    "ethers": "^5.8.0",
+    "ethers": "^6.14.3",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",

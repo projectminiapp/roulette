@@ -1,20 +1,31 @@
-// /app/api/pay-winner/route.ts
-import { NextRequest, NextResponse } from "next/server"
-import { ethers } from "ethers"
-import erc20ABI from "@/lib/erc20.json"
+import { NextRequest, NextResponse } from "next/server";
+import { ethers } from "ethers";
+import erc20ABI from "@/lib/erc20.json";
 
 export async function POST(req: NextRequest) {
-  const { to, amount } = await req.json()
+  const { to, amount } = await req.json();
 
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL)
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider)
-  const token = new ethers.Contract(process.env.TOKEN_ADDRESS!, erc20ABI, wallet)
+  // Usamos ethers.JsonRpcProvider para el proveedor RPC
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 
-  const decimals = await token.decimals()
-  const value = ethers.parseUnits(amount.toString(), decimals)
+  // Creamos el wallet con la clave privada y el proveedor
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
 
-  const tx = await token.transfer(to, value)
-  await tx.wait()
+  // Creamos el contrato ERC-20
+  const token = new ethers.Contract(process.env.TOKEN_ADDRESS!, erc20ABI, wallet);
 
-  return NextResponse.json({ success: true, txHash: tx.hash })
+  // Obtenemos los decimales del token
+  const decimals = await token.decimals();
+
+  // Usamos ethers.parseUnits directamente sin .utils
+  const value = ethers.parseUnits(amount.toString(), decimals);
+
+  // Enviamos la transacción de transferencia
+  const tx = await token.transfer(to, value);
+
+  // Esperamos la confirmación de la transacción
+  await tx.wait();
+
+  // Retornamos la respuesta con el éxito y el hash de la transacción
+  return NextResponse.json({ success: true, txHash: tx.hash });
 }

@@ -15,7 +15,7 @@ import { Coins, Sparkles, Volume2, VolumeX, BarChart3, Menu } from "lucide-react
 import { playChipSound, playSpinSound, playWinSound } from "@/lib/audio";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
-import { formatUnits } from "ethers/lib/utils";
+import { ethers } from "ethers";  // Usamos ethers directamente sin necesidad de importar 'formatUnits'
 
 import { createPublicClient, http, type PublicClient } from "viem";
 import { TokenProvider } from "@holdstation/worldchain-sdk";
@@ -58,7 +58,7 @@ export default function RouletteGame() {
         tokens: [WLD_CONTRACT_ADDRESS],
       });
       const rawBalance = balances[WLD_CONTRACT_ADDRESS] ?? "0";
-      const balanceInEth = parseFloat(formatUnits(rawBalance, 18));
+      const balanceInEth = parseFloat(ethers.formatUnits(rawBalance, 18)); // Usamos ethers.formatUnits directamente
       setBalance(balanceInEth);
     } catch (err) {
       console.error("Error obteniendo balance con Holdstation SDK:", err);
