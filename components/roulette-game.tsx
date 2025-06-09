@@ -17,7 +17,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
 import { ethers } from "ethers";  // Usamos ethers directamente sin necesidad de importar 'formatUnits'
 
-import { createPublicClient, http, type PublicClient } from "viem";
+import { createPublicClient, http } from "viem";
+import { mainnet } from "viem/chains";
 import { TokenProvider } from "@holdstation/worldchain-sdk";
 
 // Cambiar las variables de entorno a las correctas
@@ -26,8 +27,15 @@ const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!;
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!;
 
 const client = createPublicClient({
-  transport: http(RPC_URL),  // Solo configurando el RPC sin Multicall3
-}) as PublicClient;
+  chain: {
+    ...mainnet,
+    multicall3: {
+      address: "0xca11bde05977b3631167028862be2a173976ca11", // Dirección de Multicall3 para mainnet
+      blockCreated: 14353601,
+    },
+  },
+  transport: http(RPC_URL),
+});
 
 const tokenProvider = new TokenProvider({
   client: client as any,
