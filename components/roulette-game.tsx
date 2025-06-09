@@ -15,18 +15,18 @@ import { Coins, Sparkles, Volume2, VolumeX, BarChart3, Menu } from "lucide-react
 import { playChipSound, playSpinSound, playWinSound } from "@/lib/audio";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
-import { v4 as uuidv4 } from "uuid";
 import { formatUnits } from "ethers/lib/utils";
 
-import { createPublicClient, http, multicall3Abi, type PublicClient } from "viem";
+import { createPublicClient, http, type PublicClient } from "viem";
 import { TokenProvider } from "@holdstation/worldchain-sdk";
 
+// Cambiar las variables de entorno a las correctas
 const WLD_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!;
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!;
 
 const client = createPublicClient({
-  transport: http(RPC_URL),  // Solo configurando el RPC
+  transport: http(RPC_URL),  // Solo configurando el RPC sin Multicall3
 }) as PublicClient;
 
 const tokenProvider = new TokenProvider({
