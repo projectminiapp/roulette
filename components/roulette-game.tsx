@@ -15,31 +15,18 @@ import { Coins, Sparkles, Volume2, VolumeX, BarChart3, Menu } from "lucide-react
 import { playChipSound, playSpinSound, playWinSound } from "@/lib/audio";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
-import { ethers } from "ethers";  // Usamos ethers directamente sin necesidad de importar 'formatUnits'
-
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { v4 as uuidv4 } from "uuid";
+import { ethers } from "ethers";
+import { Client } from "@holdstation/worldchain-ethers-v5";
 import { TokenProvider } from "@holdstation/worldchain-sdk";
 
-// Cambiar las variables de entorno a las correctas
 const WLD_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!;
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!;
 
-const client = createPublicClient({
-  chain: {
-    ...mainnet,
-    multicall3: {
-      address: "0xca11bde05977b3631167028862be2a173976ca11", // Dirección de Multicall3 para mainnet
-      blockCreated: 14353601,
-    },
-  },
-  transport: http(RPC_URL),
-});
-
-const tokenProvider = new TokenProvider({
-  client: client as any,
-});
+const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+const client = new Client(provider);
+const tokenProvider = new TokenProvider({ client });
 
 export default function RouletteGame() {
   const [selectedChip, setSelectedChip] = useState<ChipValue>(1);
@@ -66,7 +53,7 @@ export default function RouletteGame() {
         tokens: [WLD_CONTRACT_ADDRESS],
       });
       const rawBalance = balances[WLD_CONTRACT_ADDRESS] ?? "0";
-      const balanceInEth = parseFloat(ethers.formatUnits(rawBalance, 18)); // Usamos ethers.formatUnits directamente
+      const balanceInEth = parseFloat(ethers.utils.formatUnits(rawBalance, 18));
       setBalance(balanceInEth);
     } catch (err) {
       console.error("Error obteniendo balance con Holdstation SDK:", err);
@@ -92,11 +79,9 @@ export default function RouletteGame() {
     initWallet();
   }, []);
 
-
   const placeBet = (betType: string, value: string | number, amount: number) => {
     if (isSpinning || balance < amount) return;
     if (soundEnabled) playChipSound();
-
     const existingBetIndex = bets.findIndex((bet) => bet.type === betType && bet.value === value);
     if (existingBetIndex >= 0) {
       const updatedBets = [...bets];
@@ -109,15 +94,9 @@ export default function RouletteGame() {
     } else {
       setBets([...bets, { type: betType, value, amount, justUpdated: true }]);
     }
-
     setTimeout(() => {
-      setBets((b) =>
-        b.map((bet) =>
-          bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet,
-        ),
-      );
+      setBets((b) => b.map((bet) => bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet));
     }, 500);
-
     setWinAmount(null);
   };
 
@@ -130,21 +109,20 @@ export default function RouletteGame() {
 
   const spinWheel = async () => {
     if (isSpinning || bets.length === 0 || !userAddress) return;
-
     try {
       const nonceRes = await fetch("/api/nonce");
       const { nonce } = await nonceRes.json();
-
       const { finalPayload: loginPayload } = await MiniKit.commandsAsync.walletAuth({ nonce });
       await fetch("/api/complete-siwe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ payload: loginPayload, nonce }),
       });
 
       const payRefRes = await fetch("/api/initiate-payment", { method: "POST" });
       const { id: reference } = await payRefRes.json();
-
       const payPayload = {
         reference,
         to: HOUSE_ADDRESS,
@@ -161,10 +139,11 @@ export default function RouletteGame() {
         alert("Pago cancelado o fallido");
         return;
       }
-
       const confirmRes = await fetch("/api/confirm-payment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ payload: payFinalPayload }),
       });
       const confirmResult = await confirmRes.json();
@@ -172,24 +151,18 @@ export default function RouletteGame() {
         alert("No se pudo confirmar el pago");
         return;
       }
-
       setIsSpinning(true);
       setWinAmount(null);
       const result = Math.floor(Math.random() * 37) as RouletteNumber;
       setLastResult(result);
-
       if (soundEnabled) playSpinSound();
-
       await new Promise<void>((resolve) => {
         const handleSpinComplete = async () => {
           const newHistory = [result, ...resultsHistory].slice(0, 10);
           setResultsHistory(newHistory);
-
           const winnings = processWinnings(result);
           if (winnings > 0 && soundEnabled) playWinSound();
-
           await fetchBalance(userAddress);
-
           setIsSpinning(false);
           resolve();
         };
@@ -207,8 +180,7 @@ export default function RouletteGame() {
     bets.forEach((bet) => {
       if (bet.type === "number" && bet.value === result) winnings += bet.amount * 36;
       else if (bet.type === "color" && bet.value === getNumberColor(result)) winnings += bet.amount * 2;
-      else if (bet.type === "parity" && result !== 0 && bet.value === (result % 2 === 0 ? "even" : "odd"))
-        winnings += bet.amount * 2;
+      else if (bet.type === "parity" && result !== 0 && bet.value === (result % 2 === 0 ? "even" : "odd")) winnings += bet.amount * 2;
       else if (bet.type === "dozen" && result !== 0) {
         const dozen = result <= 12 ? 1 : result <= 24 ? 2 : 3;
         if (bet.value === dozen) winnings += bet.amount * 3;
@@ -220,7 +192,6 @@ export default function RouletteGame() {
         if ((bet.value === "low" && isLow) || (bet.value === "high" && !isLow)) winnings += bet.amount * 2;
       }
     });
-
     if (winnings > 0) setWinAmount(winnings);
     return winnings;
   };
@@ -237,6 +208,7 @@ export default function RouletteGame() {
       return () => clearTimeout(timeout);
     }
   }, [isSpinning, lastResult]);
+
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center p-1 bg-[#0d1e3a]">
