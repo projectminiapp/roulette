@@ -17,16 +17,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js";
 import { v4 as uuidv4 } from "uuid";
 import { ethers } from "ethers";
-import { Client } from "@holdstation/worldchain-ethers-v5";
-import { TokenProvider } from "@holdstation/worldchain-sdk";
 
 const WLD_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!;
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!;
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!;
 
-const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
-const client = new Client(provider);
-const tokenProvider = new TokenProvider({ client });
 
 export default function RouletteGame() {
   const [selectedChip, setSelectedChip] = useState<ChipValue>(1);
@@ -48,15 +43,16 @@ export default function RouletteGame() {
   const fetchBalance = async (address: string | null) => {
     if (!address) return;
     try {
-      const balances = await tokenProvider.balanceOf({
-        wallet: address,
-        tokens: [WLD_CONTRACT_ADDRESS],
-      });
-      const rawBalance = balances[WLD_CONTRACT_ADDRESS] ?? "0";
-      const balanceInEth = parseFloat(ethers.utils.formatUnits(rawBalance, 18));
-      setBalance(balanceInEth);
+      const res = await fetch(`/api/get-balance?address=${address}`);
+      const data = await res.json();
+      if (res.ok) {
+        setBalance(data.balance);
+      } else {
+        console.error("Error API balance:", data.error);
+        setBalance(0);
+      }
     } catch (err) {
-      console.error("Error obteniendo balance con Holdstation SDK:", err);
+      console.error("Error fetching balance:", err);
       setBalance(0);
     }
   };
