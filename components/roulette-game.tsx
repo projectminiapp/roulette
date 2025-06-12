@@ -271,13 +271,17 @@ export default function RouletteGame() {
           </div>
         </div>
   
-        {winAmount !== null && (
-          <div className="text-xs font-semibold animate-pulse bg-[#1a2b47] px-2 py-0.5 rounded-full z-10">
-            Win: <span className="text-yellow-300">{winAmount.toFixed(2)} WLD</span>!
-          </div>
+        {/* ✅ Botón para refrescar balance */}
+        {userAddress && (
+          <button
+            onClick={() => fetchBalance(userAddress)}
+            className="text-xs text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-full transition-all"
+          >
+            Refrescar balance
+          </button>
         )}
   
-        {/* NUEVO: Mensaje si el usuario no está conectado */}
+        {/* ⚠️ Mensaje si el usuario no está conectado */}
         {!userAddress && (
           <div className="text-sm text-red-400 bg-[#1a2b47] px-4 py-2 rounded-lg z-10">
             Por favor, conecta tu billetera para jugar.
@@ -320,6 +324,6 @@ export default function RouletteGame() {
         </div>
       </div>
     </div>
-  );
+  )
   
 }
