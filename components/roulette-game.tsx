@@ -215,7 +215,7 @@ export default function RouletteGame() {
             Roulette Casino
           </span>
         </div>
-
+  
         <div className="flex items-center gap-2">
           <UserCounter count={userCount} />
           <Sheet>
@@ -227,7 +227,7 @@ export default function RouletteGame() {
             <SheetContent side="right" className="bg-[#0d1e3a] border-l border-[#1a2b47] p-4">
               <div className="flex flex-col gap-4 mt-6">
                 <h3 className="text-lg font-bold text-yellow-400">Opciones</h3>
-
+  
                 <button
                   onClick={() => setSoundEnabled(!soundEnabled)}
                   className="flex items-center gap-2 p-3 rounded-lg bg-[#1a2b47] text-white"
@@ -242,7 +242,7 @@ export default function RouletteGame() {
                     </>
                   )}
                 </button>
-
+  
                 <button
                   onClick={() => setShowStats(!showStats)}
                   className="flex items-center gap-2 p-3 rounded-lg bg-[#1a2b47] text-white"
@@ -250,14 +250,14 @@ export default function RouletteGame() {
                   <BarChart3 size={18} className="text-purple-400" />
                   {showStats ? "Ocultar estadísticas" : "Mostrar estadísticas"}
                 </button>
-
+  
                 <ViewToggle currentView={view} onViewChange={setView} />
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </div>
-
+  
       <div className="w-full flex flex-col items-center gap-2 relative">
         <div className="flex items-center gap-2 bg-[#1a2b47] p-1 rounded-full shadow-md z-10 w-full justify-center">
           <div className="text-xs font-semibold flex items-center gap-1 text-white">
@@ -270,13 +270,20 @@ export default function RouletteGame() {
             Bet: <span className="text-green-300">{totalBetAmount.toFixed(2)} WLD</span>
           </div>
         </div>
-
+  
         {winAmount !== null && (
           <div className="text-xs font-semibold animate-pulse bg-[#1a2b47] px-2 py-0.5 rounded-full z-10">
             Win: <span className="text-yellow-300">{winAmount.toFixed(2)} WLD</span>!
           </div>
         )}
-
+  
+        {/* NUEVO: Mensaje si el usuario no está conectado */}
+        {!userAddress && (
+          <div className="text-sm text-red-400 bg-[#1a2b47] px-4 py-2 rounded-lg z-10">
+            Por favor, conecta tu billetera para jugar.
+          </div>
+        )}
+  
         <div className="flex flex-col w-full gap-2 items-center justify-center z-10">
           <div className="w-full flex justify-center">
             <div className="w-full max-w-[250px]">
@@ -288,9 +295,9 @@ export default function RouletteGame() {
               />
             </div>
           </div>
-
+  
           <ResultsHistory history={resultsHistory} />
-
+  
           <div className="w-full">
             <BettingBoard
               onPlaceBet={(type, value) => placeBet(type, value, selectedChip)}
@@ -299,9 +306,9 @@ export default function RouletteGame() {
             />
           </div>
         </div>
-
+  
         {showStats && <StatsPanel history={resultsHistory} />}
-
+  
         <div className="w-full flex flex-col gap-2 z-10 sticky bottom-0 bg-[#0d1e3a] bg-opacity-95 p-1 border-t border-[#1a2b47]">
           <ChipSelector selectedChip={selectedChip} onSelectChip={setSelectedChip} view={view} />
           <MobileControls
@@ -314,4 +321,5 @@ export default function RouletteGame() {
       </div>
     </div>
   );
+  
 }
