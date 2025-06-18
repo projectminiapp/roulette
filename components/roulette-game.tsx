@@ -1,6 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ethers } from "ethers"
+import { v4 as uuidv4 } from "uuid"
+import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js"
+import { TokenProvider } from "@holdstation/worldchain-sdk"
+import { Client } from "@holdstation/worldchain-ethers-v5"
+
 import BettingBoard from "./betting-board"
 import RouletteWheel from "./roulette-wheel"
 import ChipSelector from "./chip-selector"
@@ -14,21 +20,11 @@ import type { Bet, ChipValue, GameView, RouletteNumber } from "@/types/roulette"
 import { Coins, Sparkles, Volume2, VolumeX, BarChart3, Menu } from "lucide-react"
 import { playChipSound, playSpinSound, playWinSound } from "@/lib/audio"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js"
-import { v4 as uuidv4 } from "uuid"
-import { ethers } from "ethers"
-import { TokenProvider } from "@holdstation/worldchain-sdk"
-import { Client } from "@holdstation/worldchain-ethers-v5"
 
-
-// ENV variables
+// ENV vars
 const WLD_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_TOKEN_ADDRESS!
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL!
 const HOUSE_ADDRESS = process.env.NEXT_PUBLIC_HOUSE_ADDRESS!
-
-const provider = new ethers.providers.JsonRpcProvider(RPC_URL)
-const client = new Client(provider)
-const tokenProvider = new TokenProvider({ client })
 
 export default function RouletteGame() {
   const [selectedChip, setSelectedChip] = useState<ChipValue>(1)
@@ -41,14 +37,54 @@ export default function RouletteGame() {
   const [winAmount, setWinAmount] = useState<number | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showStats, setShowStats] = useState(false)
+  const [userAddress, setUserAddress] = useState<string | null>(null)
   const { userCount } = useUserCounter()
   const [onSpinCompleteCallback, setOnSpinCompleteCallback] = useState<(() => void) | null>(null)
-  const [userAddress, setUserAddress] = useState<string | null>(null)
 
   const totalBetAmount = bets.reduce((total, bet) => total + bet.amount, 0)
 
-  const fetchBalance = async (address: string | null) => {
-    if (!address) return
+  const [tokenProvider, setTokenProvider] = useState<TokenProvider | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const init = async () => {
+      try {
+        await MiniKit.install()
+
+        const res = await fetch("/api/nonce")
+        const { nonce } = await res.json()
+
+        const { finalPayload } = await MiniKit.commandsAsync.walletAuth({ nonce })
+        if (finalPayload.status !== "success") return
+
+        const provider = new ethers.providers.JsonRpcProvider(RPC_URL)
+        const client = new Client(provider)
+        const _tokenProvider = new TokenProvider({ client })
+        setTokenProvider(_tokenProvider)
+
+        const wallet = finalPayload.address
+        setUserAddress(wallet)
+
+        const balances = await _tokenProvider.balanceOf({
+          wallet,
+          tokens: [WLD_CONTRACT_ADDRESS],
+        })
+
+        const raw = balances[WLD_CONTRACT_ADDRESS]
+        const formatted = raw ? parseFloat(ethers.utils.formatUnits(raw.toString(), 18)) : 0
+        setBalance(formatted)
+      } catch (err) {
+        console.error("Error iniciando sesión con MiniKit:", err)
+      }
+    }
+
+    init()
+  }, [])
+
+  const fetchBalance = async (address: string) => {
+    if (!tokenProvider || !address) return
+
     try {
       const balances = await tokenProvider.balanceOf({
         wallet: address,
@@ -58,50 +94,28 @@ export default function RouletteGame() {
       const formatted = raw ? parseFloat(ethers.utils.formatUnits(raw.toString(), 18)) : 0
       setBalance(formatted)
     } catch (err) {
-      console.error("Error obteniendo balance:", err)
+      console.error("Error al obtener balance:", err)
       setBalance(0)
     }
   }
 
-  useEffect(() => {
-    const initWallet = async () => {
-      try {
-        await MiniKit.install()
-        const res = await fetch("/api/nonce")
-        const { nonce } = await res.json()
-        const { finalPayload } = await MiniKit.commandsAsync.walletAuth({ nonce })
-
-        if (finalPayload.status === "success") {
-          setUserAddress(finalPayload.address)
-          await fetchBalance(finalPayload.address)
-        }
-      } catch (err) {
-        console.error("Wallet initialization error:", err)
-      }
-    }
-    initWallet()
-  }, [])
-
-  const placeBet = (betType: string, value: string | number, amount: number) => {
+  const placeBet = (type: string, value: string | number, amount: number) => {
     if (isSpinning || balance < amount) return
     if (soundEnabled) playChipSound()
 
-    const existingIndex = bets.findIndex((bet) => bet.type === betType && bet.value === value)
+    const existingIndex = bets.findIndex((b) => b.type === type && b.value === value)
     if (existingIndex >= 0) {
       const updated = [...bets]
-      updated[existingIndex] = {
-        ...updated[existingIndex],
-        amount: updated[existingIndex].amount + amount,
-        justUpdated: true,
-      }
+      updated[existingIndex].amount += amount
+      updated[existingIndex].justUpdated = true
       setBets(updated)
     } else {
-      setBets([...bets, { type: betType, value, amount, justUpdated: true }])
+      setBets([...bets, { type, value, amount, justUpdated: true }])
     }
 
     setTimeout(() => {
       setBets((b) =>
-        b.map((bet) => (bet.type === betType && bet.value === value ? { ...bet, justUpdated: false } : bet))
+        b.map((bet) => (bet.type === type && bet.value === value ? { ...bet, justUpdated: false } : bet))
       )
     }, 500)
 
@@ -120,10 +134,9 @@ export default function RouletteGame() {
   const spinWheel = async () => {
     if (isSpinning || bets.length === 0 || !userAddress) return
 
-    const reference = uuidv4()
     try {
       await MiniKit.commandsAsync.pay({
-        reference,
+        reference: uuidv4(),
         to: HOUSE_ADDRESS,
         tokens: [
           {
@@ -133,6 +146,7 @@ export default function RouletteGame() {
         ],
         description: "Apuesta ruleta",
       })
+
       await fetchBalance(userAddress)
     } catch (err) {
       console.error("Error en el pago:", err)
@@ -159,7 +173,7 @@ export default function RouletteGame() {
     })
   }
 
-  const processWinnings = (result: number): number => {
+  const processWinnings = (result: number) => {
     let winnings = 0
     for (const bet of bets) {
       if (bet.type === "number" && bet.value === result) winnings += bet.amount * 36
