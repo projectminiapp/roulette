@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
-import { TooltipProps } from "recharts"
+import { LegendProps } from "recharts" // Importación corregida
 import {
   NameType,
   ValueType,
@@ -104,7 +104,7 @@ const ChartLegend = RechartsPrimitive.Legend
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+    LegendProps & {
       hideIcon?: boolean
       nameKey?: string
     }
