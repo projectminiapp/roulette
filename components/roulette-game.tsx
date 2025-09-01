@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid"
 import { MiniKit, Tokens, tokenToDecimals } from "@worldcoin/minikit-js"
 import { TokenProvider } from "@holdstation/worldchain-sdk"
 import { Client } from "@holdstation/worldchain-ethers-v5"
-
+//Ahora si me voy a hacer un buen mate
 import BettingBoard from "./betting-board"
 import RouletteWheel from "./roulette-wheel"
 import ChipSelector from "./chip-selector"
