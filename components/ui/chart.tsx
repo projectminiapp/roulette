@@ -2,6 +2,11 @@
 
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
+import { TooltipProps } from "recharts"
+import {
+  NameType,
+  ValueType,
+} from "recharts/types/component/DefaultTooltipContent"
 
 import { cn } from "@/lib/utils"
 
@@ -93,8 +98,8 @@ const ChartTooltip = RechartsPrimitive.Tooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
+  React.ComponentProps<"div"> &
+    TooltipProps<ValueType, NameType> & {
       hideLabel?: boolean
       hideIndicator?: boolean
       indicator?: "line" | "dot" | "dashed"
